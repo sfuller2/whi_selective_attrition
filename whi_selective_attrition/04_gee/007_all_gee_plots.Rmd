@@ -1,0 +1,391 @@
+---
+title: "GEE plots"
+author: "Sophia Fuller"
+date: "2024-04-06"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, include = FALSE, warning = F, message = F)
+```
+
+```{r libraries}
+library(plyr)
+library(tidyverse)
+library(here)
+#install.packages("MetBrewer")
+library(MetBrewer)
+library(ggpubr)
+
+#detach("package:plyr", unload=TRUE)
+```
+
+```{r data}
+breast <- readRDS(here::here("data/main_analysis/gee_plot_data/01_breast_plot_20250130.rds"))
+lung <- readRDS(here::here("data/main_analysis/gee_plot_data/02_lung_plot_20240510.rds"))
+cr <- readRDS(here::here("data/main_analysis/gee_plot_data/03_cr_plot_20240405.rds"))
+endo <- readRDS(here::here("data/main_analysis/gee_plot_data/04_endo_plot_20240405.rds"))
+
+# and full datasets
+breast_data <- readRDS(here::here("data/main_analysis/data_weights/breast_with_weights_sl.rds")) %>%
+  mutate(ethnicnih_cat = factor(ethnicnih_cat, levels = c("Not Hispanic/Latino", "Hispanic/Latino")),
+         stage_cat = factor(stage_cat, levels = c("No cancer", "Localized", "Regional", "Distant")),
+         ccstat2 = factor(ccstat, levels = c("Control", "Case"))) %>%
+  arrange(commonid, setnumber, wave_yr) %>%
+  group_by(commonid, setnumber) %>%
+  mutate(id2 = cur_group_id()) %>%
+  ungroup() %>%
+  filter(!is.na(ahei_final))
+
+lung_data <- readRDS(here::here("data/main_analysis/data_weights/lung_with_weights_sl.rds")) %>%
+  mutate(ethnicnih_cat = factor(ethnicnih_cat, levels = c("Not Hispanic/Latino", "Hispanic/Latino")),
+         stage_cat = factor(stage_cat, levels = c("No cancer", "Localized", "Regional", "Distant")),
+         ccstat2 = factor(ccstat, levels = c("Control", "Case"))) %>%
+  arrange(commonid, setnumber, wave_yr) %>%
+  group_by(commonid, setnumber) %>%
+  mutate(id2 = cur_group_id()) %>%
+  ungroup() %>%
+  filter(!is.na(ahei_final))
+
+cr_data <- readRDS(here::here("data/main_analysis/data_weights/cr_with_weights_sl.rds")) %>%
+  mutate(ethnicnih_cat = factor(ethnicnih_cat, levels = c("Not Hispanic/Latino", "Hispanic/Latino")),
+         stage_cat = factor(stage_cat, levels = c("No cancer", "Localized", "Regional", "Distant")),
+         ccstat2 = factor(ccstat, levels = c("Control", "Case"))) %>%
+  arrange(commonid, setnumber, wave_yr) %>%
+  group_by(commonid, setnumber) %>%
+  mutate(id2 = cur_group_id()) %>%
+  ungroup() %>%
+  filter(!is.na(ahei_final))
+
+endo_data <- readRDS(here::here("data/main_analysis/data_weights/endo_with_weights_sl.rds")) %>%
+  mutate(ethnicnih_cat = factor(ethnicnih_cat, levels = c("Not Hispanic/Latino", "Hispanic/Latino")),
+         stage_cat = factor(stage_cat, levels = c("No cancer", "Localized", "Regional", "Distant")),
+         ccstat2 = factor(ccstat, levels = c("Control", "Case"))) %>%
+  arrange(commonid, setnumber, wave_yr) %>%
+  group_by(commonid, setnumber) %>%
+  mutate(id2 = cur_group_id()) %>%
+  ungroup() %>%
+  filter(!is.na(ahei_final))
+```
+
+```{r palette}
+# palette
+stage_cols <- met.brewer("Egypt" , n=4, type="discrete")
+
+```
+
+## Full follow-up time
+
+**Truncated when n < 20**
+
+*Note: Fewer than 20 distant stage endometrial cases to begin with *
+```{r plots, include = F}
+# plots
+p_breast <- ggplot(breast,aes(wave_yr,physfun,col=stage_cat, lty = IPCW))+
+  geom_line()+
+  scale_x_continuous(breaks = seq(0, 16, by = 2)) +
+  scale_y_continuous(limits = c(40, 100), breaks = seq(40, 100, by = 10)) +
+  xlab("Time from Cancer (years)")+
+  scale_color_brewer("Stage",palette = "Set1")+
+  scale_linetype_manual(values=c("dotted", "solid"))+
+  labs(title = "A. Breast", y = "Physical Function", x = "Years Since Index",
+       color = "Stage")+
+  theme_classic() +
+  theme(legend.position = "top",
+        text = element_text(size = 10),
+        axis.text.x = element_text(size = 10)) 
+p_breast
+
+p_lung <- ggplot(lung,aes(wave_yr,physfun,col=stage_cat, lty = IPCW))+
+  geom_line()+
+  scale_x_continuous(breaks = seq(0, 16, by = 2)) +
+  scale_y_continuous(limits = c(40, 100), breaks = seq(40, 100, by = 10)) +
+  xlab("Time from Cancer (years)")+
+  scale_color_brewer("Stage",palette = "Set1")+
+  scale_linetype_manual(values=c("dotted", "solid"))+
+  labs(title = "B. Lung", y = "Physical Function", x = "Years Since Index",
+       color = "Stage")+
+  theme_classic()+
+  theme(legend.position = "none",
+        text = element_text(size = 10),
+                axis.text.x = element_text(size = 10)) 
+
+p_lung
+
+p_cr <- ggplot(cr,aes(wave_yr,physfun,col=stage_cat, lty = IPCW))+
+  geom_line()+
+  scale_x_continuous(breaks = seq(0, 16, by = 2)) +
+  scale_y_continuous(limits = c(40, 100), breaks = seq(40, 100, by = 10)) +
+  xlab("Time from Cancer (years)")+
+  scale_color_brewer("Stage",palette = "Set1")+
+  scale_linetype_manual(values=c("dotted", "solid"))+
+  labs(title = "C. Colorectal", y = "Physical Function", x = "Years Since Index",
+       color = "Stage")+
+  theme_classic() +
+  theme(legend.position = "top",
+        text = element_text(size = 10),
+        axis.text.x = element_text(size = 10)) 
+p_cr
+
+p_endo <- ggplot(endo,aes(wave_yr,physfun,col=stage_cat, lty = IPCW))+
+  geom_line()+
+  scale_x_continuous(breaks = seq(0, 16, by = 2)) +
+  scale_y_continuous(limits = c(40, 100), breaks = seq(40, 100, by = 10)) +
+  xlab("Time from Cancer (years)")+
+  scale_color_brewer("Stage",palette = "Set1")+
+  scale_linetype_manual(values=c("dotted", "solid"))+
+  labs(title = "D. Endometrial", y = "Physical Function", x = "Years Since Index",
+       color = "Stage")+
+  theme_classic() +
+  theme(legend.position = "top",
+        text = element_text(size = 10),
+        axis.text.x = element_text(size = 10)) 
+p_endo
+
+gee_plots <- ggpubr::ggarrange(p_breast, p_lung, p_cr, p_endo, nrow = 2, ncol = 2, legend = "top", common.legend = T)
+gee_plots
+
+ggsave(plot = gee_plots, filename = here::here("output/plots/final/001_gee_allsites.jpg"),
+       height = 6, width = 10, units = "in", dpi = 600)
+ggsave(plot = gee_plots, filename = here::here("output/plots/final/001_gee_allsites.pdf"),
+       height = 6, width = 10, units = "in", dpi = 600)
+```
+
+```{r atrisk}
+library(plyr)
+SF36overTime_br<-ddply(breast_data,.(wave_yr,stage_cat),function(x) data.frame(SF36mean=mean(x$physfun, na.rm = T),n=nrow(x)))
+
+breast_atrisk<-ggplot(SF36overTime_br[SF36overTime_br$wave_yr %in% seq(0,16,by=1),],aes(wave_yr,stage_cat))+
+  geom_tile(fill=NA)+
+  scale_x_continuous(limits = c(0, 16),breaks = seq(0,16,by=2))+
+  scale_y_discrete(expand=c(0,0), labels = c(" ", " ", " ", " "))+
+  geom_text(aes(label=n,color=stage_cat), size = 3)+
+  geom_point(aes(col = stage_cat), size = 0, alpha = 0) + 
+  scale_color_brewer("Stage",palette = "Set1")+
+  xlab("Years Since Index")+
+  ylab("Number in cohort")+
+  ggtitle("A. Breast")+
+  theme_classic()+
+  theme(
+        axis.title = element_text(size=10),
+        axis.text = element_text(size=10),
+        #axis.text.y = element_blank(),
+        text = element_text(size = 10),
+        legend.position = "none")+
+   ggplot2::guides(color = guide_legend(override.aes = list(label = "", size = 3, alpha = 1)))
+
+breast_atrisk
+
+SF36overTime_lung<-ddply(lung_data,.(wave_yr,stage_cat),function(x) data.frame(SF36mean=mean(x$physfun, na.rm = T),n=nrow(x)))
+
+lung_atrisk<-ggplot(SF36overTime_lung[SF36overTime_lung$wave_yr %in% seq(0,16,by=1),],aes(wave_yr,stage_cat))+
+  geom_tile(fill=NA)+
+  scale_x_continuous(limits = c(0, 16),breaks = seq(0,16,by=2))+
+  scale_y_discrete(expand=c(0,0), labels = c(" ", " ", " ", " "))+
+  geom_text(aes(label=n,color=stage_cat), size = 3)+
+  geom_point(aes(col = stage_cat), size = 0, alpha = 0) + 
+  scale_color_brewer("Stage",palette = "Set1")+
+  xlab("Years Since Index")+
+  ylab("Number in cohort")+
+  ggtitle("B. Lung")+
+  theme_classic()+
+  theme(
+        axis.title = element_text(size=10),
+        axis.text = element_text(size=10),
+        #axis.text.y = element_blank(),
+        text = element_text(size = 10),
+        legend.position = "none")+
+   ggplot2::guides(color = guide_legend(override.aes = list(label = "", size = 3, alpha = 1)))
+
+lung_atrisk
+
+SF36overTime_cr<-ddply(cr_data,.(wave_yr,stage_cat),function(x) data.frame(SF36mean=mean(x$physfun, na.rm = T),n=nrow(x)))
+
+cr_atrisk<-ggplot(SF36overTime_cr[SF36overTime_cr$wave_yr %in% seq(0,16,by=1),],aes(wave_yr,stage_cat))+
+  geom_tile(fill=NA)+
+  scale_x_continuous(limits = c(0, 16),breaks = seq(0,16,by=2))+
+  scale_y_discrete(expand=c(0,0), labels = c(" ", " ", " ", " "))+
+  geom_text(aes(label=n,color=stage_cat), size = 3)+
+  geom_point(aes(col = stage_cat), size = 0, alpha = 0) + 
+  scale_color_brewer("Stage",palette = "Set1")+
+  xlab("Years Since Index")+
+  ylab("Number in cohort")+
+  ggtitle("C. Colorectal")+
+  theme_classic()+
+  theme(
+        axis.title = element_text(size=10),
+        axis.text = element_text(size=10),
+        text = element_text(size = 10),
+        #axis.text.y = element_blank(),
+        legend.position = "none")+
+   ggplot2::guides(color = guide_legend(override.aes = list(label = "", size = 3, alpha = 1)))
+
+cr_atrisk
+
+SF36overTime_endo<-ddply(endo_data,.(wave_yr,stage_cat),function(x) data.frame(SF36mean=mean(x$physfun, na.rm = T),n=nrow(x)))
+
+endo_atrisk<-ggplot(SF36overTime_endo[SF36overTime_endo$wave_yr %in% seq(0,16,by=1),],aes(wave_yr,stage_cat))+
+  geom_tile(fill=NA)+
+  scale_x_continuous(limits = c(0, 16),breaks = seq(0,16,by=2))+
+  scale_y_discrete(expand=c(0,0), labels = c(" ", " ", " ", " "))+
+  geom_text(aes(label=n,color=stage_cat), size = 3)+
+  geom_point(aes(col = stage_cat), size = 0, alpha = 0) + 
+  scale_color_brewer("Stage",palette = "Set1")+
+  xlab("Years Since Index")+
+  ylab("Number in cohort")+
+  ggtitle("D. Endometrial")+
+  theme_classic()+
+  theme(
+        axis.title = element_text(size=10),
+        axis.text = element_text(size=10),
+        text = element_text(size = 10),
+        #axis.text.y = element_blank(),
+        legend.position = "none"
+        ) +
+   ggplot2::guides(color = guide_legend(override.aes = list(label = "", size = 3, alpha = 1)))
+
+
+endo_atrisk
+
+atrisk_plots <- ggarrange(breast_atrisk, lung_atrisk, cr_atrisk, endo_atrisk, nrow = 4, ncol = 1, legend = "top", common.legend = T)
+atrisk_plots 
+
+ggsave(plot = atrisk_plots, filename = here::here("output/plots/final/002_atrisk_allsites.jpg"),
+       height = 7, width = 7, units = "in", dpi = 600)
+ggsave(plot = atrisk_plots, filename = here::here("output/plots/final/002_atrisk_allsites.pdf"),
+       height = 7, width = 7, units = "in", dpi = 600)
+```
+
+
+```{r arrange-plot-atrisk, include = T}
+
+breast_plots <- ggarrange(p_breast, breast_atrisk, nrow = 2, ncol = 1, legend = "top", common.legend = T, heights = c(2, 1), align = "h")
+
+breast_plots
+
+lung_plots <- ggarrange(p_lung, lung_atrisk, nrow = 2, ncol = 1, legend = "top", common.legend = T, heights = c(2, 1), align = "h")
+
+lung_plots 
+
+
+cr_plots <- ggarrange(p_cr, cr_atrisk,nrow = 2, ncol = 1, legend = "top", common.legend = T, heights = c(2, 1), align = "h")
+
+
+endo_plots <- ggarrange(p_endo, endo_atrisk, nrow = 2, ncol = 1, legend = "top", common.legend = T, heights = c(2, 1), align = "h")
+
+```
+
+\newpage
+
+```{r, eval = F}
+ggsave(plot = breast_plots, filename = here::here("output/plots/final/001_breast_gee.jpg"),
+       height = 4, width = 7, units = "in", dpi = 600)
+ggsave(plot = breast_plots, filename = here::here("output/plots/final/001_breast_gee.pdf"),
+       height = 4, width = 7, units = "in", dpi = 600)
+ggsave(plot = lung_plots, filename = here::here("output/plots/002_lung_gee.jpg"),
+       height = 4, width = 7, units = "in", dpi = 600)
+ggsave(plot = lung_plots, filename = here::here("output/plots/002_lung_gee.pdf"),
+       height = 4, width = 7, units = "in", dpi = 600)
+ggsave(plot = cr_plots, filename = here::here("output/plots/003_cr_gee.jpg"),
+       height = 4, width = 7, units = "in", dpi = 600)
+ggsave(plot = cr_plots, filename = here::here("output/plots/003_cr_gee.pdf"),
+       height = 4, width = 7, units = "in", dpi = 600)
+ggsave(plot = endo_plots, filename = here::here("output/plots/004_endo_gee.jpg"),
+       height = 4, width = 7, units = "in", dpi = 600)
+ggsave(plot = endo_plots, filename = here::here("output/plots/004_endo_gee.pdf"),
+       height = 4, width = 7, units = "in", dpi = 600)
+
+```
+
+
+
+```{r arrange-plots, include = T}
+ggarrange(p_breast, p_lung, p_cr, p_endo,
+          ncol = 2, nrow = 2,
+          legend = "top", common.legend = T)
+```
+
+\newpage
+
+```{r}
+SF36overTime_br<-ddply(breast,.(wave_yr,stage_cat),function(x) data.frame(SF36mean=mean(x$physfun, na.rm = T),n=nrow(x)))
+
+p2_breast<-ggplot(SF36overTime_br[SF36overTime_br$wave_yr %in% seq(0,16,by=1),],aes(wave_yr,stage_cat))+
+  geom_tile(fill=NA)+
+  scale_x_continuous(limits = c(0, 16),breaks = seq(0,16,by=1))+
+  scale_y_discrete(expand=c(0,0), labels = c(" ", " ", " ", " "))+
+  geom_text(aes(label=n,col=stage_cat))+
+  scale_color_brewer("Stage",palette = "Set1")+
+  scale_fill_brewer("Stage",palette = "Set1")+
+  xlab("Time from Cancer (years)")+
+  ylab("Counts")+
+  ggtitle("Number at Risk")+
+  theme_classic()+
+  theme(
+        axis.title = element_text(size=12),
+        axis.text = element_text(size=12),
+        #axis.text.y = element_blank(),
+        legend.position = "none")
+```
+\newpage
+## 5 years of follow-up
+
+```{r plots5, include = T}
+# plots
+p_breast5 <- ggplot(breast %>% filter(wave_yr <= 5),aes(wave_yr,physfun,col=stage_cat, lty = IPCW))+
+  geom_line(size=1.2)+
+  scale_x_continuous(breaks = seq(0, 5, by = 1)) +
+  scale_y_continuous(limits = c(40, 85)) +
+  xlab("Time from Cancer (years)")+
+  scale_color_manual(values = stage_cols) +
+  scale_linetype_manual(values=c("dashed", "solid"))+
+  labs(title = "Breast cancer", y = "Physical Function", x = "Years Since Index",
+       color = "Stage")+
+  theme(legend.position = "top" )
+p_breast5
+
+p_lung5 <- ggplot(lung%>% filter(wave_yr <= 5),aes(wave_yr,physfun,col=stage_cat, lty = IPCW))+
+  geom_line(size=1.2)+
+  scale_x_continuous(breaks = seq(0, 5, by = 1)) +
+  scale_y_continuous(limits = c(40, 85)) +
+  xlab("Time from Cancer (years)")+
+  scale_color_manual(values = stage_cols) +
+  scale_linetype_manual(values=c("dashed", "solid"))+
+  labs(title = "Lung cancer", y = "Physical Function", x = "Years Since Index",
+       color = "Stage")+
+  theme(legend.position = "top" )
+p_lung5
+
+p_cr5 <- ggplot(cr%>% filter(wave_yr <= 5),aes(wave_yr,physfun,col=stage_cat, lty = IPCW))+
+  geom_line(size=1.2)+
+  scale_x_continuous(breaks = seq(0, 5, by = 1)) +
+  scale_y_continuous(limits = c(40, 85)) +
+  xlab("Time from Cancer (years)")+
+  scale_color_manual(values = stage_cols) +
+  scale_linetype_manual(values=c("dashed", "solid"))+
+  labs(title = "Colorectal cancer", y = "Physical Function", x = "Years Since Index",
+       color = "Stage")+
+  theme(legend.position = "top" )
+p_cr5
+
+p_endo5 <- ggplot(endo%>% filter(wave_yr <= 5),aes(wave_yr,physfun,col=stage_cat, lty = IPCW))+
+  geom_line(size=1.2)+
+  scale_x_continuous(breaks = seq(0, 5, by = 1)) +
+  scale_y_continuous(limits = c(40, 85)) +
+  xlab("Time from Cancer (years)")+
+  scale_color_manual(values = stage_cols) +
+  scale_linetype_manual(values=c("dashed", "solid"))+
+  labs(title = "Endometrial cancer", y = "Physical Function", x = "Years Since Index",
+       color = "Stage")+
+  theme(legend.position = "top" )
+p_endo5
+```
+
+\newpage
+
+```{r arrange-plots5, include = T}
+ggarrange(p_breast5, p_lung5, p_cr5, p_endo5,
+          ncol = 2, nrow = 2,
+          legend = "top", common.legend = T)
+```
+
